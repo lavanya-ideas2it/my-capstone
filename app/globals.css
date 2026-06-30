@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900 antialiased;
+  }
+}
+
+/* Search snippet highlights from ts_headline */
+mark {
+  @apply bg-yellow-100 text-yellow-900 rounded px-0.5;
+}
