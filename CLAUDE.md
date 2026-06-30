@@ -178,3 +178,90 @@ To keep the capstone focused, the following are explicitly **out of scope**:
 
 The MCP Filesystem integration is limited to **importing local documents** into
 the wiki; it is not a general-purpose file management feature.
+
+---
+
+## MCP Integration
+
+### Overview
+
+TeamWiki uses the **Filesystem MCP server** (`@modelcontextprotocol/server-filesystem`)
+to enable bulk-import of local Markdown documents. The MCP server is the only
+external boundary for the import feature — it provides sandboxed, read-only
+access to the `./import-docs` directory.
+
+### Configuration (`.mcp.json`)
+
+The project root contains `.mcp.json` which configures the filesystem MCP
+server for Claude Code (and other MCP-compatible clients):
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "node",
+      "args": [
+        "node_modules/@modelcontextprotocol/server-filesystem/dist/index.js",
+        "./import-docs"
+      ]
+    }
+  }
+}
+```
+
+This gives Claude Code read access to `./import-docs/` so it can assist with
+reviewing, editing, and importing documents. Access is **strictly confined** to
+that directory — the server rejects any path outside it.
+
+### How the Import Feature Uses MCP
+
+The flow is:
+
+```
+Browser → GET /api/import/list          (lib/mcp.ts → list_directory via MCP)
+        → lists .md files in import-docs
+
+Browser → POST /api/import { files[] }  (lib/import.ts → reads + parses each file)
+        → creates Article + Revision v1 per file
+        → returns { created[], skipped[] }
+```
+
+Key files:
+
+| File | Role |
+|------|------|
+| `lib/mcp.ts` | MCP client — spawns the filesystem server via stdio, calls `list_directory` and `read_file` tools |
+| `lib/import.ts` | Parses front-matter, slugifies, calls `createArticle()`, handles duplicates |
+| `app/api/import/list/route.ts` | `GET /api/import/list` — EDITOR+, returns available `.md` files via MCP |
+| `app/api/import/route.ts` | `POST /api/import` — EDITOR+, runs the full import pipeline |
+| `app/(app)/import/page.tsx` | Frontend import UI — file picker + report |
+
+### Adding Import Documents
+
+Drop `.md` files into `./import-docs/`. Optionally add YAML front-matter:
+
+```markdown
+---
+title: My Document Title
+tags: engineering, process
+---
+
+# Body starts here
+```
+
+If `title` is absent the filename is used. If `tags` names a tag that doesn't
+exist yet, it is created automatically. Duplicate slugs are skipped and
+reported in the `skipped[]` array (AC13.2).
+
+### Safety
+
+- The MCP server is scoped to `./import-docs` — path traversal is rejected at
+  both the MCP server level and again in `lib/import.ts` (`resolveWithinRoot`).
+- Parsed content passes through the same Zod schemas as the REST API.
+- The import routes require EDITOR role minimum.
+
+### Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `IMPORT_ROOT` | `./import-docs` | Absolute or relative path to the import directory |

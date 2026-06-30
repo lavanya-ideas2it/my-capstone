@@ -48,6 +48,11 @@ describe("requireUser", () => {
       status: 401,
     });
   });
+  it("throws 401 for a syntactically invalid token (line 119)", async () => {
+    await expect(requireUser(reqWith("not.a.valid.jwt"))).rejects.toMatchObject({
+      status: 401,
+    });
+  });
 });
 
 describe("requireRole", () => {

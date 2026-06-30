@@ -243,4 +243,17 @@ describe("GET /api/auth/me", () => {
     const res = await me(makeRequest("/api/auth/me"));
     expect(res.status).toBe(401);
   });
+
+  it("401 when the user referenced by a valid token has been deleted", async () => {
+    const { user, token } = await createUser(Role.EDITOR);
+    // Delete the user from the DB while the token is still valid.
+    await prisma.user.delete({ where: { id: user.id } });
+    const res = await me(makeRequest("/api/auth/me", { token }));
+    expect(res.status).toBe(401);
+  });
+
+  it("401 for a syntactically invalid token", async () => {
+    const res = await me(makeRequest("/api/auth/me", { token: "not.a.jwt" }));
+    expect(res.status).toBe(401);
+  });
 });

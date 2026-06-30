@@ -130,6 +130,21 @@ describe("PUT /api/tags/:id", () => {
     );
     expect(res.status).toBe(403);
   });
+
+  it("409 when renaming to a name already taken by another tag", async () => {
+    const editor = await createUser(Role.EDITOR);
+    await seedTag("Existing");
+    const tag = await seedTag("ToRename");
+    const res = await updateTag(
+      makeRequest(`/api/tags/${tag.id}`, {
+        method: "PUT",
+        token: editor.token,
+        body: { name: "Existing" },
+      }),
+      params({ id: tag.id })
+    );
+    expect(res.status).toBe(409);
+  });
 });
 
 describe("DELETE /api/tags/:id", () => {

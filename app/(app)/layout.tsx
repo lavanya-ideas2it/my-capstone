@@ -55,6 +55,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               + New article
             </Link>
+            <Link
+              href="/import"
+              className="block text-sm text-gray-600 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100"
+            >
+              Import docs
+            </Link>
           </RoleGate>
 
           <RoleGate role="ADMIN">

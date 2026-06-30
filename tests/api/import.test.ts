@@ -121,4 +121,23 @@ describe("POST /api/import", () => {
     );
     expect(res.status).toBe(401);
   });
+
+  it("skips a file that does not exist in the import root (lines 80-81)", async () => {
+    const editor = await createUser(Role.EDITOR);
+    // "missing.md" is not written to the temp dir.
+    const res = await importDocs(
+      makeRequest("/api/import", {
+        method: "POST",
+        token: editor.token,
+        body: { files: ["missing.md"] },
+      })
+    );
+    expect(res.status).toBe(201);
+    const { created, skipped } = await res.json();
+    expect(created).toHaveLength(0);
+    expect(skipped[0]).toMatchObject({
+      file: "missing.md",
+      reason: expect.stringMatching(/not found|unreadable/i),
+    });
+  });
 });

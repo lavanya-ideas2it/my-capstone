@@ -5,6 +5,7 @@ import {
   parseQuery,
   registerSchema,
   searchQuery,
+  updateArticleSchema,
 } from "@/lib/validation";
 
 describe("registerSchema", () => {
@@ -38,6 +39,22 @@ describe("createArticleSchema", () => {
     const v = createArticleSchema.parse({ title: "T" });
     expect(v.body).toBe("");
     expect(v.tagIds).toEqual([]);
+  });
+});
+
+describe("updateArticleSchema", () => {
+  it("accepts a partial update with just a title", () => {
+    expect(() => updateArticleSchema.parse({ title: "New Title" })).not.toThrow();
+  });
+
+  it("rejects an empty body — Nothing to update (refine at line 53)", () => {
+    expect(() => updateArticleSchema.parse({})).toThrow(/nothing to update/i);
+  });
+
+  it("rejects a body with only changeSummary — no content field", () => {
+    expect(() =>
+      updateArticleSchema.parse({ changeSummary: "some note" })
+    ).toThrow(/nothing to update/i);
   });
 });
 
