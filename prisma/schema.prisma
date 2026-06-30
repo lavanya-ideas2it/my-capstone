@@ -1,0 +1,112 @@
+// TeamWiki — Prisma schema (single source of truth for the DB).
+// See docs/SPEC.md §2.1 (Data Model) and root CLAUDE.md (conventions).
+//
+// Notes:
+//  - `Article.searchVector` is a Postgres GENERATED tsvector column maintained
+//    by the database itself (zero drift, no trigger). Prisma tracks it as an
+//    `Unsupported` type; the GENERATED clause + GIN index are defined in the
+//    `add_search_vector` migration (raw SQL).
+//  - `Revision` is append-only and immutable — never UPDATE a revision row.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  articles  Article[]  @relation("AuthorArticles")
+  revisions Revision[] @relation("EditorRevisions")
+  sessions  Session[]
+
+  @@index([role])
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  body      String   @db.Text
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Nullable 1—1 pointer to the latest revision.
+  currentRevisionId String?   @unique
+  currentRevision   Revision? @relation("CurrentRevision", fields: [currentRevisionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Full-text search vector: GENERATED ALWAYS column (see add_search_vector migration).
+  searchVector Unsupported("tsvector")?
+
+  // Relations
+  author    User       @relation("AuthorArticles", fields: [authorId], references: [id], onDelete: Restrict)
+  revisions Revision[] @relation("ArticleRevisions")
+  tags      Tag[]      @relation("ArticleTags")
+
+  @@index([authorId])
+  @@index([searchVector], type: Gin)
+}
+
+model Revision {
+  id            String   @id @default(cuid())
+  articleId     String
+  title         String
+  body          String   @db.Text
+  editorId      String
+  version       Int
+  changeSummary String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  article Article @relation("ArticleRevisions", fields: [articleId], references: [id], onDelete: Cascade)
+  editor  User    @relation("EditorRevisions", fields: [editorId], references: [id], onDelete: Restrict)
+
+  // Back-relation for Article.currentRevision (the article this revision is "current" of).
+  currentOf Article? @relation("CurrentRevision")
+
+  @@unique([articleId, version])
+  @@index([articleId, createdAt])
+  @@index([editorId])
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  articles Article[] @relation("ArticleTags")
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ip               String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
