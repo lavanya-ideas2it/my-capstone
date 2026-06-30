@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Stage 1: Test ────────────────────────────────────────────────────────────
+  # Lint → type-check → unit + integration tests with coverage gate (80%).
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: teamwiki
+          POSTGRES_PASSWORD: teamwiki
+          POSTGRES_DB: teamwiki_test
+        # Map to 5433 so the committed .env.test DATABASE_URL works unchanged.
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit + integration tests (with coverage)
+        run: npm run test:coverage
+        # .env.test is committed and loaded by tests/setup-env.ts; no secrets
+        # needed here beyond what that file provides.
+
+  # ── Stage 2: Build ───────────────────────────────────────────────────────────
+  # Production build — fails on type errors, missing imports, or build warnings
+  # treated as errors. Runs only after the test stage passes.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+        env:
+          # Prisma client generation reads the schema (no live DB needed), but
+          # the env var must be a valid connection-string format.
+          DATABASE_URL: postgresql://teamwiki:teamwiki@localhost:5432/teamwiki_build
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-build-placeholder-not-for-production' }}
+          ACCESS_TOKEN_TTL: 15m
+          NEXT_TELEMETRY_DISABLED: 1
+
+  # ── Stage 3: Security ────────────────────────────────────────────────────────
+  # Dependency audit — blocks the pipeline on high or critical findings.
+  # Runs in parallel with the test stage; does not need its output.
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high

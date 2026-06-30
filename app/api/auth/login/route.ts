@@ -8,13 +8,19 @@ import {
   toPublicUser,
   verifyPassword,
 } from "@/lib/auth";
-import { handleRoute, json, readJson, unauthorized } from "@/lib/http";
+import { handleRoute, json, readJson, tooManyRequests, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 import { loginSchema } from "@/lib/validation";
 
 // POST /api/auth/login — public. Returns an access token + sets a refresh cookie.
 export async function POST(req: NextRequest) {
   return handleRoute(async () => {
+    // Rate-limit to 20 attempts per IP per 15 minutes (brute-force protection).
+    if (!checkRateLimit(`login:${clientIp(req)}`, 20, 15 * 60_000)) {
+      throw tooManyRequests("Too many login attempts. Please try again later.");
+    }
+
     const { email, password } = loginSchema.parse(await readJson(req));
 
     const user = await prisma.user.findUnique({ where: { email } });

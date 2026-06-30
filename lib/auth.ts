@@ -32,6 +32,8 @@ const ROLE_RANK: Record<Role, number> = {
 function secretKey(): Uint8Array {
   const s = process.env.JWT_SECRET;
   if (!s) throw new Error("JWT_SECRET is not set");
+  // HS256 requires ≥256 bits of key material; enforce a 32-character minimum.
+  if (s.length < 32) throw new Error("JWT_SECRET must be at least 32 characters");
   return new TextEncoder().encode(s);
 }
 

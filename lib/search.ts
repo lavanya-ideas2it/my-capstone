@@ -18,6 +18,17 @@ export type SearchHit = {
 
 export type SearchResult = { items: SearchHit[]; total: number };
 
+/**
+ * Strip all HTML tags from a ts_headline snippet except the <mark>…</mark>
+ * tags used for search-term highlighting.  Article bodies are stored as raw
+ * text and are not HTML-encoded by Postgres, so a body containing angle-bracket
+ * characters would otherwise leak raw HTML into the API response.
+ */
+function sanitizeSnippet(raw: string): string {
+  // Negative lookahead keeps <mark> and </mark>; removes everything else.
+  return raw.replace(/<(?!\/?mark>)[^>]+>/gi, "");
+}
+
 export async function searchArticles(
   q: string,
   page: number,
@@ -52,7 +63,7 @@ export async function searchArticles(
   `);
 
   return {
-    items: rows.map((r) => ({ ...r, rank: Number(r.rank) })),
+    items: rows.map((r) => ({ ...r, rank: Number(r.rank), snippet: sanitizeSnippet(r.snippet) })),
     total: countRows[0]?.count ?? 0,
   };
 }

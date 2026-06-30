@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { RoleGate } from "@/components/RoleGate";
 import { UserTable } from "@/components/UserTable";
@@ -77,8 +76,6 @@ function AdminContent() {
 }
 
 export default function UserAdminPage() {
-  const router = useRouter();
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">

@@ -80,7 +80,12 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
 // ---------- Import ----------
 export const importSchema = z
-  .object({ files: z.array(z.string().min(1)).min(1, "No files provided") })
+  .object({
+    files: z
+      .array(z.string().min(1))
+      .min(1, "No files provided")
+      .max(100, "Maximum 100 files per import request"),
+  })
   .strict();
 export type ImportInput = z.infer<typeof importSchema>;
 
@@ -93,7 +98,7 @@ export const paginationQuery = z.object({
 export type PaginationQuery = z.infer<typeof paginationQuery>;
 
 export const searchQuery = z.object({
-  q: z.string().min(1, "Query is required"),
+  q: z.string().min(1, "Query is required").max(500, "Query too long"),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

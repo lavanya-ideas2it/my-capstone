@@ -1,7 +1,7 @@
 import { Prisma, Role } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireRole, toPublicUser } from "@/lib/auth";
-import { conflict, handleRoute, json, notFound, readJson } from "@/lib/http";
+import { badRequest, conflict, handleRoute, json, notFound, readJson } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { updateUserSchema } from "@/lib/validation";
 
@@ -28,8 +28,12 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
 // DELETE /api/admin/users/:id — ADMIN only.
 export async function DELETE(req: NextRequest, ctx: Ctx) {
   return handleRoute(async () => {
-    await requireRole(req, Role.ADMIN);
+    const admin = await requireRole(req, Role.ADMIN);
     const { id } = await ctx.params;
+
+    // Prevent admins from deleting their own account — would risk locking
+    // everyone out if they are the last admin.
+    if (id === admin.id) throw badRequest("Cannot delete your own account");
 
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) throw notFound("User not found");

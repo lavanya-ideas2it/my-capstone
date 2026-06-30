@@ -10,7 +10,10 @@ function LoginForm() {
   const { setCredentials } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") ?? "/";
+  // Validate the redirect target: must be a relative path, never a
+  // protocol-relative URL (//evil.com) or absolute URL (https://evil.com).
+  const rawFrom = searchParams.get("from") ?? "/";
+  const from = rawFrom.startsWith("/") && !rawFrom.startsWith("//") ? rawFrom : "/";
   const registeredEmail = searchParams.get("registered");
 
   const [email, setEmail] = useState(registeredEmail ?? "");

@@ -25,6 +25,7 @@ export const unauthorized = (m = "Unauthenticated") => new HttpError(401, m);
 export const forbidden = (m = "Forbidden") => new HttpError(403, m);
 export const notFound = (m = "Not found") => new HttpError(404, m);
 export const conflict = (m = "Conflict") => new HttpError(409, m);
+export const tooManyRequests = (m = "Too many requests") => new HttpError(429, m);
 
 export function json<T>(data: T, status = 200): NextResponse<T> {
   return NextResponse.json(data, { status });

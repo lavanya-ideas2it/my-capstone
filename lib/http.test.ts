@@ -44,7 +44,6 @@ describe("handleRoute", () => {
   });
 
   it("maps a ZodError to 400", async () => {
-    const { ZodError } = await import("zod");
     const res = await handleRoute(async () => {
       const { z } = await import("zod");
       z.string().min(10).parse("x");
