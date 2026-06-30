@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import type { TagWithCount } from "@/types";
 
-export function TagNav() {
+function TagNavInner() {
   const { apiFetch } = useAuth();
   const searchParams = useSearchParams();
   const activeTag = searchParams.get("tag") ?? null;
@@ -63,5 +63,13 @@ export function TagNav() {
         ))}
       </ul>
     </nav>
+  );
+}
+
+export function TagNav() {
+  return (
+    <Suspense>
+      <TagNavInner />
+    </Suspense>
   );
 }

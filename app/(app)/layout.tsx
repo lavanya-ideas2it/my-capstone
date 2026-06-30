@@ -64,6 +64,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Admin: users
             </Link>
+            <Link
+              href="/register"
+              className="block text-sm text-gray-600 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100"
+            >
+              Admin: add user
+            </Link>
           </RoleGate>
 
           <div className="flex items-center justify-between text-xs text-gray-500 pt-1">

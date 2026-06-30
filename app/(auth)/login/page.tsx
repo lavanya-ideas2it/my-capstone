@@ -1,17 +1,34 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { AuthUser } from "@/types";
 
-export default function LoginPage() {
+function LoginForm() {
   const { setCredentials } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") ?? "/";
+  const registeredEmail = searchParams.get("registered");
+
+  const [email, setEmail] = useState(registeredEmail ?? "");
   const [password, setPassword] = useState("");
+  const [notice] = useState<string | null>(
+    registeredEmail ? "Account created — sign in to continue." : null
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Only show the register link when no users exist yet (bootstrap window open).
+  const [needsBootstrap, setNeedsBootstrap] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/bootstrap")
+      .then((r) => r.json())
+      .then(({ needsBootstrap: v }) => setNeedsBootstrap(Boolean(v)))
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -24,7 +41,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
-        // AC1.2: generic error, no hint about which field was wrong.
+        // AC1.2: generic error — no hint about which field was wrong.
         setError("Invalid email or password.");
         return;
       }
@@ -33,7 +50,7 @@ export default function LoginPage() {
         accessToken: string;
       };
       setCredentials(user, accessToken);
-      router.push("/");
+      router.replace(from);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -85,6 +102,12 @@ export default function LoginPage() {
           />
         </div>
 
+        {notice && (
+          <p role="status" className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
+            {notice}
+          </p>
+        )}
+
         {error && (
           <p role="alert" className="text-sm text-red-600">
             {error}
@@ -101,6 +124,24 @@ export default function LoginPage() {
           {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
+
+      {/* Only shown before the first user is created (bootstrap window). */}
+      {needsBootstrap && (
+        <p className="mt-4 text-center text-sm text-gray-500">
+          No accounts yet?{" "}
+          <Link href="/register" className="text-brand-600 hover:text-brand-700 font-medium">
+            Set up your account
+          </Link>
+        </p>
+      )}
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

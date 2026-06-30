@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export function SearchBar() {
+function SearchBarInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
@@ -62,5 +62,13 @@ export function SearchBar() {
         />
       </div>
     </form>
+  );
+}
+
+export function SearchBar() {
+  return (
+    <Suspense>
+      <SearchBarInner />
+    </Suspense>
   );
 }

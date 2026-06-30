@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { ArticleCard } from "@/components/ArticleCard";
@@ -9,7 +9,7 @@ import type { ArticleSummary } from "@/types";
 
 const LIMIT = 20;
 
-export default function ArticleListPage() {
+function ArticleListContent() {
   const { apiFetch } = useAuth();
   const searchParams = useSearchParams();
   const tagSlug = searchParams.get("tag") ?? undefined;
@@ -26,7 +26,10 @@ export default function ArticleListPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(LIMIT),
+    });
     if (tagSlug) params.set("tag", tagSlug);
 
     apiFetch(`/api/articles?${params}`)
@@ -67,9 +70,7 @@ export default function ArticleListPage() {
       )}
 
       {!loading && !error && items.length === 0 && (
-        <p className="text-gray-500">
-          No articles found.
-        </p>
+        <p className="text-gray-500">No articles found.</p>
       )}
 
       {!loading && !error && items.length > 0 && (
@@ -88,5 +89,13 @@ export default function ArticleListPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function ArticleListPage() {
+  return (
+    <Suspense>
+      <ArticleListContent />
+    </Suspense>
   );
 }

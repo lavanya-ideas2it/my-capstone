@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { ChangeSummaryInput } from "@/components/ChangeSummaryInput";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { SaveBar } from "@/components/SaveBar";
@@ -116,8 +115,6 @@ export default function NewArticlePage() {
         <p className="text-sm font-medium text-gray-700 mb-2">Tags</p>
         <TagPicker all={allTags} selected={tagIds} onChange={setTagIds} />
       </div>
-
-      <ChangeSummaryInput value="" onChange={() => {}} />
 
       <SaveBar
         mode="create"
