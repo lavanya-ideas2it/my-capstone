@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+import process from "process";
 
 // Content-Security-Policy directives.
 // Note: Next.js App Router requires 'unsafe-inline' for script-src due to
