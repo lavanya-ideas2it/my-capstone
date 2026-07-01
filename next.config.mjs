@@ -2,11 +2,13 @@
 
 // Content-Security-Policy directives.
 // Note: Next.js App Router requires 'unsafe-inline' for script-src due to
-// inline hydration scripts injected during SSR. A nonce-based CSP would be
-// stricter but requires additional Next.js middleware configuration.
+// inline hydration scripts injected during SSR. Development mode also requires
+// 'unsafe-eval' for React Refresh (hot module reloading). A nonce-based CSP
+// would be stricter but requires additional Next.js middleware configuration.
+const isDev = process.env.NODE_ENV === "development";
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",

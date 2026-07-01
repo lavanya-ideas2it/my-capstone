@@ -11,12 +11,16 @@ function SearchBarInner() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounce navigation by 300 ms so we don't fire on every keystroke.
+  // When query is cleared, navigate back to home; otherwise navigate to search results.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const trimmed = query.trim();
       if (trimmed) {
         router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+      } else {
+        // Query was cleared: navigate back to home page (resets to default articles list)
+        router.push("/");
       }
     }, 300);
     return () => {
